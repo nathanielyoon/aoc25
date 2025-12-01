@@ -70,19 +70,7 @@ fn solve2(input: []const u8) u32 {
     return count;
 }
 
-const example =
-    \\L68
-    \\L30
-    \\R48
-    \\L5
-    \\R60
-    \\L55
-    \\L1
-    \\L99
-    \\R14
-    \\L82
-    \\
-;
+const example = @embedFile("./example.txt");
 test "part 1" {
     try std.testing.expectEqual(3, solve1(example));
 }
