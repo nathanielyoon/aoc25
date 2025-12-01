@@ -92,8 +92,10 @@ test "part 2" {
 
 pub fn main() !void {
     const input = @embedFile("./input.txt");
-    const solution = solve2(input);
 
     var writer = std.fs.File.stdout().writer(&.{});
-    try writer.interface.print("{d}\n", .{solution});
+    try writer.interface.print("1: {d}\n2: {d}\n", .{
+        solve1(input),
+        solve2(input),
+    });
 }
