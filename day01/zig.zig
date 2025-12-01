@@ -1,19 +1,6 @@
 const std = @import("std");
-const example =
-    \\L68
-    \\L30
-    \\R48
-    \\L5
-    \\R60
-    \\L55
-    \\L1
-    \\L99
-    \\R14
-    \\L82
-    \\
-;
 
-pub fn solve1(input: []const u8) u32 {
+fn solve1(input: []const u8) u32 {
     var direction: u8 = undefined;
     var distance: u32 = 0;
     var state: i32 = 50;
@@ -41,11 +28,8 @@ pub fn solve1(input: []const u8) u32 {
     }
     return count;
 }
-test "part 1" {
-    try std.testing.expectEqual(3, solve1(example));
-}
 
-pub fn solve2(input: []const u8) u32 {
+fn solve2(input: []const u8) u32 {
     var direction: u8 = undefined;
     var distance: u32 = 0;
     var state: i32 = 50;
@@ -85,6 +69,31 @@ pub fn solve2(input: []const u8) u32 {
     }
     return count;
 }
+
+const example =
+    \\L68
+    \\L30
+    \\R48
+    \\L5
+    \\R60
+    \\L55
+    \\L1
+    \\L99
+    \\R14
+    \\L82
+    \\
+;
+test "part 1" {
+    try std.testing.expectEqual(3, solve1(example));
+}
 test "part 2" {
     try std.testing.expectEqual(6, solve2(example));
+}
+
+pub fn main() !void {
+    const input = @embedFile("./input.txt");
+    const solution = solve2(input);
+
+    var writer = std.fs.File.stdout().writer(&.{});
+    try writer.interface.print("{d}\n", .{solution});
 }
