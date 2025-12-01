@@ -7,11 +7,7 @@ fn solve1(input: []const u8) u32 {
     var count: u32 = 0;
     for (input) |character| {
         switch (character) {
-            'L', 'R' => direction = character,
-            '0'...'9' => {
-                distance *= 10;
-                distance += character - '0';
-            },
+            '0'...'9' => distance = distance * 10 + character - '0',
             '\n' => {
                 switch (direction) {
                     'L' => state -= @intCast(distance),
@@ -20,10 +16,9 @@ fn solve1(input: []const u8) u32 {
                 }
                 state = @mod(state, 100);
                 if (state == 0) count += 1;
-                direction = undefined;
                 distance = 0;
             },
-            else => unreachable,
+            else => direction = character,
         }
     }
     return count;
@@ -36,35 +31,23 @@ fn solve2(input: []const u8) u32 {
     var count: u32 = 0;
     for (input) |character| {
         switch (character) {
-            'L', 'R' => direction = character,
-            '0'...'9' => {
-                distance *= 10;
-                distance += character - '0';
-            },
+            '0'...'9' => distance = distance * 10 + character - '0',
             '\n' => {
                 while (distance > 100) : (distance -= 100) count += 1;
                 switch (direction) {
                     'L' => {
-                        const prev = state;
+                        if (state == 0) state = 100;
                         state -= @intCast(distance);
-                        if (state < 0) {
-                            state += 100;
-                            if (prev != 0) count += 1;
-                        } else if (state == 0) count += 1;
                     },
-                    'R' => {
-                        state += @intCast(distance);
-                        if (state >= 100) {
-                            state -= 100;
-                            count += 1;
-                        } else if (state == 0) count += 1;
-                    },
+                    'R' => state += @intCast(distance),
                     else => unreachable,
                 }
-                direction = undefined;
+                const prev = state;
+                state = @mod(state, 100);
+                if (state == 0 or state != prev) count += 1;
                 distance = 0;
             },
-            else => unreachable,
+            else => direction = character,
         }
     }
     return count;
