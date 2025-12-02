@@ -62,7 +62,7 @@ fn solve(comptime validate: fn (id: u64) bool, input: []const u8) !u64 {
 
 fn validate1(id: u64) bool {
     const digits = countDigits(id);
-    // Odd number of digits, so can't be a repeated sequence.
+    // Odd number of digits, so can't be a doubled sequence.
     if (digits & 1 != 0) return true;
     const half = std.math.pow(u64, 10, digits >> 1);
     return id % half != id / half;
@@ -81,8 +81,7 @@ test "validate1() handles example" {
 
 fn validate2(id: u64) bool {
     const digits = countDigits(id);
-    var size: u64 = 1;
-    top: while (size <= digits >> 1) : (size += 1) {
+    top: for (1..(digits >> 1) + 1) |size| {
         // Subsequence length doesn't fit evenly into the overall sequence.
         if (digits % size != 0) continue;
 
@@ -111,7 +110,7 @@ test "validate2() handles example" {
 pub fn main() !void {
     const input = @embedFile("./input.txt");
     var writer = std.fs.File.stdout().writer(&.{}).interface;
-    try writer.print("1: {any}\n2: {any}\n", .{
+    try writer.print("1: {d}\n2: {d}\n", .{
         try solve(validate1, input),
         try solve(validate2, input),
     });
