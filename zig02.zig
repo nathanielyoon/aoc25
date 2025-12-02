@@ -1,5 +1,6 @@
 const std = @import("std");
 const Range = struct { min: u64, max: u64 };
+const example = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
 
 fn parse(allocator: std.mem.Allocator, ranges: []const u8) !std.ArrayList(Range) {
     var outer = std.mem.splitScalar(u8, ranges, ',');
@@ -16,7 +17,7 @@ fn parse(allocator: std.mem.Allocator, ranges: []const u8) !std.ArrayList(Range)
 test "parse() handles example" {
     const allocator = std.testing.allocator;
 
-    var actual = try parse(allocator, @embedFile("./example.txt"));
+    var actual = try parse(allocator, example);
     defer actual.deinit(allocator);
 
     var expected = try std.array_list.Aligned(Range, null).initCapacity(allocator, 11);
@@ -76,7 +77,7 @@ test "validate1() handles invalid examples" {
     for (ids) |id| try std.testing.expect(validate1(id) == false);
 }
 test "validate1() handles example" {
-    try std.testing.expectEqual(1227775554, try solve(validate1, @embedFile("./example.txt")));
+    try std.testing.expectEqual(1227775554, try solve(validate1, example));
 }
 
 fn validate2(id: u64) bool {
@@ -104,11 +105,11 @@ test "validateId2() handles invalid examples" {
     for (ids) |id| try std.testing.expect(validate2(id) == false);
 }
 test "validate2() handles example" {
-    try std.testing.expectEqual(4174379265, try solve(validate2, @embedFile("./example.txt")));
+    try std.testing.expectEqual(4174379265, try solve(validate2, example));
 }
 
 pub fn main() !void {
-    const input = @embedFile("./input.txt");
+    const input = @embedFile("./input/02.txt");
     var writer = std.fs.File.stdout().writer(&.{}).interface;
     try writer.print("1: {d}\n2: {d}\n", .{
         try solve(validate1, input),
