@@ -44,23 +44,7 @@ fn countDigits(id: u64) u64 {
     return log + 1;
 }
 
-fn validateId1(id: u64) bool {
-    const digits = countDigits(id);
-    // Odd number of digits, so can't be a repeated sequence.
-    if (digits & 1 != 0) return true;
-    const half = std.math.pow(u64, 10, digits >> 1);
-    return id % half != id / half;
-}
-test "validateId1() handles trivial cases" {
-    try std.testing.expect(validateId1(1) == true);
-    try std.testing.expect(validateId1(11) == false);
-}
-test "validateId1() catches all invalid examples" {
-    const ids = [_]u64{ 11, 22, 99, 1010, 1188511885, 222222, 446446, 38593859 };
-    for (ids) |id| try std.testing.expect(validateId1(id) == false);
-}
-
-fn solve1(input: []const u8) !u64 {
+fn solve(comptime validate: fn (id: u64) bool, input: []const u8) !u64 {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
@@ -70,17 +54,65 @@ fn solve1(input: []const u8) !u64 {
     for (list.items) |range| {
         var id = range.min;
         while (id <= range.max) : (id += 1) {
-            if (!validateId1(id)) invalid += id;
+            if (!validate(id)) invalid += id;
         }
     }
     return invalid;
 }
-test "solve1() handles example" {
-    try std.testing.expectEqual(1227775554, try solve1(@embedFile("./example.txt")));
+
+fn validate1(id: u64) bool {
+    const digits = countDigits(id);
+    // Odd number of digits, so can't be a repeated sequence.
+    if (digits & 1 != 0) return true;
+    const half = std.math.pow(u64, 10, digits >> 1);
+    return id % half != id / half;
+}
+test "validate1() handles trivial cases" {
+    try std.testing.expect(validate1(1) == true);
+    try std.testing.expect(validate1(11) == false);
+}
+test "validate1() handles invalid examples" {
+    const ids = [_]u64{ 11, 22, 99, 1010, 1188511885, 222222, 446446, 38593859 };
+    for (ids) |id| try std.testing.expect(validate1(id) == false);
+}
+test "validate1() handles example" {
+    try std.testing.expectEqual(1227775554, try solve(validate1, @embedFile("./example.txt")));
+}
+
+fn validate2(id: u64) bool {
+    const digits = countDigits(id);
+    var size: u64 = 1;
+    top: while (size <= digits >> 1) : (size += 1) {
+        // Subsequence length doesn't fit evenly into the overall sequence.
+        if (digits % size != 0) continue;
+
+        const part = std.math.pow(u64, 10, size);
+        const base = id % part;
+        for (1..digits / size) |step| {
+            if (id / std.math.pow(u64, part, step) % part != base) continue :top;
+        }
+        return false;
+    }
+    return true;
+}
+test "validateId2() handles trivial cases" {
+    try std.testing.expect(validate2(1) == true);
+    try std.testing.expect(validate2(11) == false);
+    try std.testing.expect(validate2(111) == false);
+}
+test "validateId2() handles invalid examples" {
+    const ids = [_]u64{ 11, 22, 99, 111, 999, 1010, 1188511885, 222222, 446446, 38593859, 565656, 824824824, 2121212121 };
+    for (ids) |id| try std.testing.expect(validate2(id) == false);
+}
+test "validate2() handles example" {
+    try std.testing.expectEqual(4174379265, try solve(validate2, @embedFile("./example.txt")));
 }
 
 pub fn main() !void {
     const input = @embedFile("./input.txt");
     var writer = std.fs.File.stdout().writer(&.{}).interface;
-    try writer.print("1: {any}\n", .{solve1(input)});
+    try writer.print("1: {any}\n2: {any}\n", .{
+        try solve(validate1, input),
+        try solve(validate2, input),
+    });
 }
