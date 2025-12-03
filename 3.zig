@@ -1,6 +1,15 @@
 const std = @import("std");
 
-fn findLargest(bank: []const u8) u8 {
+fn solve(comptime find: fn (bank: []const u8) u32, input: []const u8) u32 {
+    var it = std.mem.splitScalar(u8, input, '\n');
+    var total: u32 = 0;
+    while (it.next()) |bank| {
+        if (bank.len >= 2) total += find(bank);
+    }
+    return total;
+}
+
+fn find1(bank: []const u8) u32 {
     std.debug.assert(bank.len >= 2);
     var upper = bank[0] - '0';
     var lower = bank[1] - '0';
@@ -14,23 +23,14 @@ fn findLargest(bank: []const u8) u8 {
     }
     return upper * 10 + @max(lower, bank[index] - '0');
 }
-test "findLargest(line) finds largest joltage" {
-    try std.testing.expectEqual(98, findLargest("987654321111111"));
-    try std.testing.expectEqual(89, findLargest("811111111111119"));
-    try std.testing.expectEqual(78, findLargest("234234234234278"));
-    try std.testing.expectEqual(92, findLargest("818181911112111"));
+test "find1(line) finds largest joltage" {
+    try std.testing.expectEqual(98, find1("987654321111111"));
+    try std.testing.expectEqual(89, find1("811111111111119"));
+    try std.testing.expectEqual(78, find1("234234234234278"));
+    try std.testing.expectEqual(92, find1("818181911112111"));
 }
-
-fn solve1(input: []const u8) u32 {
-    var it = std.mem.splitScalar(u8, input, '\n');
-    var total: u32 = 0;
-    while (it.next()) |bank| {
-        if (bank.len >= 2) total += findLargest(bank);
-    }
-    return total;
-}
-test "solve1(example) calculates correct total" {
-    try std.testing.expectEqual(357, solve1(
+test "solve(find1, example) calculates correct total" {
+    try std.testing.expectEqual(357, solve(find1,
         \\987654321111111
         \\811111111111119
         \\234234234234278
@@ -43,6 +43,6 @@ pub fn main() !void {
 
     var writer = std.fs.File.stdout().writer(&.{});
     try writer.interface.print("{d}\n", .{
-        solve1(input),
+        solve(find1, input),
     });
 }
