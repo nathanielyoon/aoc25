@@ -1,4 +1,17 @@
 const std = @import("std");
+const example =
+    \\L68
+    \\L30
+    \\R48
+    \\L5
+    \\R60
+    \\L55
+    \\L1
+    \\L99
+    \\R14
+    \\L82
+    \\
+;
 
 fn solve1(input: []const u8) u32 {
     var direction: u8 = undefined;
@@ -22,6 +35,9 @@ fn solve1(input: []const u8) u32 {
         }
     }
     return count;
+}
+test "part 1" {
+    try std.testing.expectEqual(3, solve1(example));
 }
 
 fn solve2(input: []const u8) u32 {
@@ -52,12 +68,8 @@ fn solve2(input: []const u8) u32 {
     }
     return count;
 }
-
-test "part 1" {
-    try std.testing.expectEqual(3, solve1(@embedFile("./examples/1.txt")));
-}
 test "part 2" {
-    try std.testing.expectEqual(6, solve2(@embedFile("./examples/1.txt")));
+    try std.testing.expectEqual(6, solve2(example));
 }
 
 pub fn main() !void {
