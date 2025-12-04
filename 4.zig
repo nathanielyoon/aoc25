@@ -10,62 +10,73 @@ const example =
     \\@.@@@.@@@@
     \\.@@@@@@@@.
     \\@.@.@@@.@.
-    \\
 ;
 
-fn countRows(comptime diagram: []const u8) comptime_int {
-    @setEvalBranchQuota(1e5);
-    var rows = 0;
-    for (diagram) |c| {
-        if (c == '\n') rows += 1;
-    }
-    return rows;
-}
-test "countRows(example) finds right height" {
-    try std.testing.expectEqual(10, countRows(example));
-}
-fn countCols(comptime diagram: []const u8) comptime_int {
+fn measure(comptime diagram: []const u8) comptime_int {
     for (diagram, 0..) |c, i| {
         if (c == '\n') return i;
     }
     unreachable;
 }
-test "countCols(example) finds right width" {
-    try std.testing.expectEqual(10, countCols(example));
+test "measure(example) finds right width" {
+    try std.testing.expectEqual(10, measure(example));
 }
 
-fn check(diagram: []const u8, i: usize) u8 {
-    if (i >= diagram.len) return 0;
+fn isRoll(character: u8) u8 {
+    return @intFromBool(character == '@');
+}
+fn check(above: []const u8, below: []const u8) u8 {
+    std.debug.assert(above.len == below.len);
     var total: u8 = 0;
-    if (i > 0 and diagram[i - 1] == '@') total += 1;
-    if (diagram[i] == '@') total += 1;
-    if (i < diagram.len - 1 and diagram[i + 1] == '@') total += 1;
+    for (above) |c| total += isRoll(c);
+    for (below) |c| total += isRoll(c);
     return total;
 }
 
-fn solve1(comptime diagram: []const u8) u32 {
-    const rows = countRows(diagram);
-    const cols = countCols(diagram) + 1;
-    const size = rows * cols;
-    var counts = [_]u8{0} ** size;
-    for (&counts, 0..) |*c, i| if (diagram[i] == '@') {
-        c.* = check(diagram, i) - 1 + check(diagram, i + cols);
-        if (i >= cols) c.* += check(diagram, i - cols);
-    };
-    var total: u32 = 0;
-    for (diagram, 0..) |c, i| {
-        if (c == '@' and counts[i] < 4) total += 1;
+fn count(comptime source: []const u8, target: []u8) void {
+    const width = measure(source);
+    std.debug.assert(target.len == source.len);
+    var above = [_]u8{'.'} ** width;
+    var it = std.mem.splitScalar(u8, std.mem.trimEnd(u8, source, "\n"), '\n');
+    var i: usize = 0;
+    while (it.next()) |row| : (i += width + 1) {
+        const below = it.peek() orelse &[_]u8{'.'} ** width;
+        // Check leftmost edge.
+        target[i] += check(above[0..2], below[0..2]);
+        target[i] += isRoll(row[1]);
+
+        // Check inner characters.
+        var j: usize = 1;
+        while (j < width - 1) : (j += 1) {
+            target[i + j] += check(above[j - 1 .. j + 2], below[j - 1 .. j + 2]);
+            target[i + j] += isRoll(row[j - 1]) + isRoll(row[j + 1]);
+        }
+
+        // Check rightmost edge.
+        target[i + width - 1] += check(above[width - 2 ..], below[width - 2 ..]);
+        target[i + width - 1] += isRoll(row[width - 2]);
+
+        @memcpy(&above, row);
     }
+}
+
+fn solve1(comptime source: []const u8) u32 {
+    var target = [_]u8{0} ** source.len;
+    count(source, &target);
+    var total: u32 = 0;
+    for (source, target) |s, t| if (s == '@' and t < 4) {
+        total += 1;
+    };
     return total;
 }
-test "solve1(example) solves" {
+test "solve1(example) solves 1" {
     try std.testing.expectEqual(13, solve1(example));
 }
 
 pub fn main() !void {
     const input = @embedFile("./inputs/4.txt");
-    var writer = std.fs.File.stdout().writer(&.{});
-    try writer.interface.print("{d}\n", .{
+    var writer = std.fs.File.stdout().writer(&.{}).interface;
+    try writer.print("{d}\n", .{
         solve1(input),
     });
 }
