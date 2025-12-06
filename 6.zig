@@ -7,43 +7,66 @@ const example =
 ;
 
 const Operation = enum { add, mul };
-
-fn solve1(input: []const u8) !u64 {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
+const Inputs = struct {
+    lines: std.mem.SplitBackwardsIterator(u8, .scalar),
+    operations: std.ArrayList(Operation),
+    accumulators: []u64,
+};
+fn parseInputs(allocator: std.mem.Allocator, input: []const u8) !Inputs {
     var lines = std.mem.splitBackwardsScalar(u8, std.mem.trim(u8, input, "\n"), '\n');
-    var operations = try std.array_list.Aligned(Operation, null).initCapacity(allocator, 1);
-    defer operations.deinit(allocator);
 
+    var operations = try std.array_list.Aligned(Operation, null).initCapacity(allocator, 1);
     var it = std.mem.tokenizeScalar(u8, lines.first(), ' ');
-    while (it.next()) |s| switch (s[0]) {
+    while (it.next()) |op| switch (op[0]) {
         '+' => try operations.append(allocator, .add),
         '*' => try operations.append(allocator, .mul),
         else => unreachable,
     };
 
     var accumulators = try allocator.alloc(u64, operations.items.len);
-    defer allocator.free(accumulators);
-
-    for (operations.items, 0..) |o, i| switch (o) {
-        .add => accumulators[i] = 0,
-        .mul => accumulators[i] = 1,
+    for (operations.items, 0..) |op, i| accumulators[i] = switch (op) {
+        .add => 0,
+        .mul => 1,
     };
-    while (lines.next()) |line| {
-        it = std.mem.tokenizeScalar(u8, line, ' ');
+
+    return Inputs{ .lines = lines, .operations = operations, .accumulators = accumulators };
+}
+test "parseInputs(example) parses" {
+    const allocator = std.testing.allocator;
+
+    var actual = try parseInputs(allocator, example);
+    defer actual.operations.deinit(allocator);
+    defer allocator.free(actual.accumulators);
+
+    try std.testing.expectEqualStrings("  6 98  215 314", actual.lines.next().?);
+    try std.testing.expectEqualStrings(" 45 64  387 23 ", actual.lines.next().?);
+    try std.testing.expectEqualStrings("123 328  51 64 ", actual.lines.next().?);
+
+    try std.testing.expectEqualDeep(&[_]Operation{ .mul, .add, .mul, .add }, actual.operations.items);
+
+    try std.testing.expectEqualDeep(&[_]u64{ 1, 0, 1, 0 }, actual.accumulators);
+}
+
+fn solve1(input: []const u8) !u64 {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    var inputs = try parseInputs(allocator, input);
+
+    while (inputs.lines.next()) |line| {
+        var it = std.mem.tokenizeScalar(u8, line, ' ');
         var i: usize = 0;
-        while (it.next()) |s| : (i += 1) {
-            const int = try std.fmt.parseInt(u64, s, 10);
-            switch (operations.items[i]) {
-                .add => accumulators[i] += int,
-                .mul => accumulators[i] *= int,
+        while (it.next()) |slice| : (i += 1) {
+            const int = try std.fmt.parseInt(u64, slice, 10);
+            switch (inputs.operations.items[i]) {
+                .add => inputs.accumulators[i] += int,
+                .mul => inputs.accumulators[i] *= int,
             }
         }
     }
     var total: u64 = 0;
-    for (accumulators) |a| total += a;
+    for (inputs.accumulators) |a| total += a;
     return total;
 }
 test "solve1(example) solves 1" {
