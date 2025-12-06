@@ -70,13 +70,61 @@ fn solve1(input: []const u8) !u64 {
     return total;
 }
 test "solve1(example) solves 1" {
-    try std.testing.expectEqual(4277556, solve1(example));
+    try std.testing.expectEqual(4277556, try solve1(example));
+}
+
+fn solve2(input: []const u8) !u64 {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    var inputs = try parseInputs(allocator, input);
+    var lines = std.mem.splitScalar(u8, input, '\n');
+    var numbers = try allocator.alloc(u64, lines.peek().?.len);
+    @memset(numbers, 0);
+    while (lines.next()) |line| {
+        for (line, 0..) |char, i| switch (char) {
+            '0'...'9' => numbers[i] = numbers[i] * 10 + char - '0',
+            ' ', '+', '*' => {},
+            else => unreachable,
+        };
+    }
+    var operation: Operation = undefined;
+    var accumulator: usize = 0;
+    inputs.lines.reset();
+    for (inputs.lines.first(), 0..) |char, i| switch (char) {
+        '+' => {
+            operation = .add;
+            accumulator += 1;
+        },
+        '*' => {
+            operation = .mul;
+            accumulator += 1;
+        },
+        ' ' => switch (operation) {
+            .add => inputs.accumulators[accumulator - 1] += numbers[i - 1],
+            .mul => inputs.accumulators[accumulator - 1] *= numbers[i - 1],
+        },
+        else => unreachable,
+    };
+    switch (operation) {
+        .add => inputs.accumulators[accumulator - 1] += numbers[numbers.len - 1],
+        .mul => inputs.accumulators[accumulator - 1] *= numbers[numbers.len - 1],
+    }
+
+    var total: u64 = 0;
+    for (inputs.accumulators) |a| total += a;
+    return total;
+}
+test "solve2(example) solves 2" {
+    try std.testing.expectEqual(3263827, try solve2(example));
 }
 
 pub fn main() !void {
     const input = @embedFile("./inputs/6.txt");
     var writer = std.fs.File.stdout().writer(&.{});
-    try writer.interface.print("{d}\n", .{
+    try writer.interface.print("{d}\n{d}\n", .{
         try solve1(input),
+        try solve2(input),
     });
 }
