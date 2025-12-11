@@ -170,6 +170,9 @@ test "validateRectangle(example)" {
     try std.testing.expectEqual(false, validateRectangle(lines, .{ 2, 5 }, .{ 11, 1 }));
 }
 
+fn compareRectangles(context: []Tile, lhs: [2]usize, rhs: [2]usize) bool {
+    return calculateArea(context[lhs[0]], context[lhs[1]]) < calculateArea(context[rhs[0]], context[rhs[1]]);
+}
 fn solve2(input: []const u8) !u64 {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -178,14 +181,25 @@ fn solve2(input: []const u8) !u64 {
     const tiles = try parseTiles(allocator, input);
     const lines = try drawLines(allocator, tiles);
 
-    var max: u64 = 0;
-    for (tiles, 0..) |one, i| {
-        for (tiles[i + 1 ..]) |two| {
-            const area = calculateArea(one, two);
-            if (area > max and validateRectangle(lines, one, two)) max = area;
+    var rectangles = try allocator.alloc([2]usize, tiles.len * (tiles.len - 1) / 2);
+    var i: usize = 0;
+    for (0..tiles.len) |j| {
+        for (j + 1..tiles.len) |k| {
+            rectangles[i] = .{ j, k };
+            i += 1;
         }
     }
-    return max;
+
+    std.sort.pdq([2]usize, rectangles, tiles, compareRectangles);
+
+    std.debug.assert(i == rectangles.len);
+    while (i > 0) {
+        i -= 1;
+        const lhs = tiles[rectangles[i][0]];
+        const rhs = tiles[rectangles[i][1]];
+        if (validateRectangle(lines, lhs, rhs)) return calculateArea(lhs, rhs);
+    }
+    unreachable;
 }
 test "solve2(example)" {
     try std.testing.expectEqual(24, try solve2(example));
