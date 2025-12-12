@@ -24,7 +24,7 @@ fn solve1(input: []const u8) !u32 {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var lines = lib.split(input);
+    var lines = lib.split(input, '\n');
     const first = lines.first();
     var set = try allocator.alloc(bool, first.len);
     for (first, 0..) |char, i| set[i] = char == 'S';
@@ -48,7 +48,7 @@ fn solve2(input: []const u8) !u64 {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var lines = lib.split(input);
+    var lines = lib.split(input, '\n');
     const first = lines.first();
     var set = try allocator.alloc(u64, first.len);
     for (first, 0..) |char, i| set[i] = if (char == 'S') 1 else 0;

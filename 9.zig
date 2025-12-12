@@ -18,9 +18,9 @@ pub fn main() !void {
 
 const Tile = @Vector(2, usize);
 fn parseTiles(allocator: std.mem.Allocator, input: []const u8) ![]Tile {
-    const size = lib.count(input);
+    const size = lib.count(input, '\n');
     var tiles = try allocator.alloc(Tile, size);
-    var lines = lib.split(input);
+    var lines = lib.split(input, '\n');
     var i: usize = 0;
     while (lines.next()) |line| : (i += 1) {
         const comma = std.mem.findScalar(u8, line, ',').?;

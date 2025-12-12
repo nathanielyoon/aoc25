@@ -43,7 +43,7 @@ test "distance(example) follows comparisons" {
 
 /// Parses a list of nodes.
 fn parse(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(Node) {
-    var lines = lib.split(input);
+    var lines = lib.split(input, '\n');
     var list = try std.array_list.Aligned(Node, null).initCapacity(allocator, 1);
     while (lines.next()) |line| {
         var it = std.mem.splitScalar(u8, line, ',');
