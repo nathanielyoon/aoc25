@@ -81,20 +81,25 @@ test "solve1(example)" {
     try std.testing.expectEqual(50, try solve1(example));
 }
 
-fn drawLines(allocator: std.mem.Allocator, tiles: []Tile) ![]?[2]usize {
-    var max: usize = 0;
-    for (tiles) |tile| max = @max(tile[1] + 1, max);
-
-    const lines = try allocator.alloc(?[2]usize, max);
-    for (0..max) |row| lines[row] = null;
-
-    var prev = tiles[tiles.len - 1];
-    for (tiles) |tile| {
-        const row = tile[1];
-        if (row == prev[1]) lines[row] = .{ @min(tile[0], prev[0]), @max(tile[0], prev[0]) };
-        prev = tile;
+const Box = struct {
+    min: Tile,
+    max: Tile,
+    fn draw(one: Tile, two: Tile) Box {
+        return .{
+            .min = .{ @min(one[0], two[0]), @min(one[1], two[1]) },
+            .max = .{ @max(one[0], two[0]), @max(one[1], two[1]) },
+        };
     }
-
+    fn overlaps(self: *Box, with: Box) bool {
+        return with.min[0] <= self.max[0] and
+            self.min[0] <= with.max[0] and
+            with.min[1] <= self.max[1] and
+            self.min[1] <= with.max[1];
+    }
+};
+fn drawLines(allocator: std.mem.Allocator, tiles: []Tile) ![]Box {
+    var lines = try allocator.alloc(Box, tiles.len);
+    for (tiles, 0..) |tile, i| lines[i] = Box.draw(tile, tiles[(i + 1) % tiles.len]);
     return lines;
 }
 test "drawLines(example)" {
@@ -103,75 +108,26 @@ test "drawLines(example)" {
     const tiles = try parseTiles(allocator, example);
     defer allocator.free(tiles);
 
-    const lines = try drawLines(allocator, tiles);
+    var lines = try drawLines(allocator, tiles);
     defer allocator.free(lines);
 
-    try std.testing.expectEqual(null, lines[0]);
-    try std.testing.expectEqual(.{ 7, 11 }, lines[1]);
-    try std.testing.expectEqual(null, lines[2]);
-    try std.testing.expectEqual(.{ 2, 7 }, lines[3]);
-    try std.testing.expectEqual(null, lines[4]);
-    try std.testing.expectEqual(.{ 2, 9 }, lines[5]);
-    try std.testing.expectEqual(null, lines[6]);
-    try std.testing.expectEqual(.{ 9, 11 }, lines[7]);
-}
-
-const Red = enum { none, min, max };
-fn validateRectangle(lines: []?[2]usize, one: Tile, two: Tile) bool {
-    // Rectangle's vertical bounds.
-    const upper: usize = @min(one[1], two[1]);
-    const lower: usize = @max(one[1], two[1]);
-    // Loop over each column.
-    for (@min(one[0], two[0])..@max(one[0], two[0]) + 1) |col| {
-        // Track whether inside/outside the loop.
-        var is_green = false;
-        // Track unmatched red tiles, which make all subsequent tiles green
-        // until the next. When that happens, the state may or may not change,
-        // depending on whether the two red tiles are on the same end of their
-        // respective lines.
-        var last_red = Red.none;
-        // Loop over each line.
-        for (0..lower + 1) |row| if (lines[row]) |line| {
-            if (col == line[0]) switch (last_red) {
-                .none => last_red = .min,
-                .min => last_red = .none,
-                .max => {
-                    is_green = !is_green;
-                    last_red = .none;
-                },
-            } else if (col == line[1]) switch (last_red) {
-                .none => last_red = .max,
-                .min => {
-                    is_green = !is_green;
-                    last_red = .none;
-                },
-                .max => last_red = .none,
-            } else if (col > line[0] and col < line[1]) {
-                is_green = !is_green;
-            } else if (row >= upper and !is_green and last_red == .none) return false;
-        };
+    try std.testing.expectEqualSlices(Box, &.{
+        .{ .min = .{ 7, 1 }, .max = .{ 11, 1 } },
+        .{ .min = .{ 11, 1 }, .max = .{ 11, 7 } },
+        .{ .min = .{ 9, 7 }, .max = .{ 11, 7 } },
+        .{ .min = .{ 9, 5 }, .max = .{ 9, 7 } },
+        .{ .min = .{ 2, 5 }, .max = .{ 9, 5 } },
+        .{ .min = .{ 2, 3 }, .max = .{ 2, 5 } },
+        .{ .min = .{ 2, 3 }, .max = .{ 7, 3 } },
+        .{ .min = .{ 7, 1 }, .max = .{ 7, 3 } },
+    }, lines);
+    for (lines, 0..) |*line, i| {
+        try std.testing.expect(line.overlaps(lines[(i + 1) % lines.len]));
     }
-    return true;
-}
-test "validateRectangle(example)" {
-    const allocator = std.testing.allocator;
-
-    const tiles = try parseTiles(allocator, example);
-    defer allocator.free(tiles);
-
-    const lines = try drawLines(allocator, tiles);
-    defer allocator.free(lines);
-
-    try std.testing.expectEqual(true, validateRectangle(lines, .{ 7, 3 }, .{ 11, 1 }));
-    try std.testing.expectEqual(true, validateRectangle(lines, .{ 9, 7 }, .{ 9, 5 }));
-    try std.testing.expectEqual(true, validateRectangle(lines, .{ 9, 5 }, .{ 2, 3 }));
-    try std.testing.expectEqual(false, validateRectangle(lines, .{ 2, 5 }, .{ 9, 7 }));
-    try std.testing.expectEqual(false, validateRectangle(lines, .{ 7, 1 }, .{ 11, 7 }));
-    try std.testing.expectEqual(false, validateRectangle(lines, .{ 2, 5 }, .{ 11, 1 }));
 }
 
-fn compareRectangles(context: []Tile, lhs: [2]usize, rhs: [2]usize) bool {
-    return calculateArea(context[lhs[0]], context[lhs[1]]) < calculateArea(context[rhs[0]], context[rhs[1]]);
+fn compareBoxes(_: void, one: Box, two: Box) bool {
+    return calculateArea(one.min, one.max) < calculateArea(two.min, two.max);
 }
 fn solve2(input: []const u8) !u64 {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -181,23 +137,28 @@ fn solve2(input: []const u8) !u64 {
     const tiles = try parseTiles(allocator, input);
     const lines = try drawLines(allocator, tiles);
 
-    var rectangles = try allocator.alloc([2]usize, tiles.len * (tiles.len - 1) / 2);
+    var boxes = try allocator.alloc(Box, tiles.len * (tiles.len - 1) / 2);
     var i: usize = 0;
-    for (0..tiles.len) |j| {
-        for (j + 1..tiles.len) |k| {
-            rectangles[i] = .{ j, k };
+    for (tiles, 0..) |one, j| {
+        for (tiles[j + 1 ..]) |two| {
+            boxes[i] = Box.draw(one, two);
             i += 1;
         }
     }
 
-    std.sort.pdq([2]usize, rectangles, tiles, compareRectangles);
+    std.sort.pdq(Box, boxes, {}, compareBoxes);
 
-    std.debug.assert(i == rectangles.len);
-    while (i > 0) {
+    std.debug.assert(i == boxes.len);
+    top: while (i > 0) {
         i -= 1;
-        const lhs = tiles[rectangles[i][0]];
-        const rhs = tiles[rectangles[i][1]];
-        if (validateRectangle(lines, lhs, rhs)) return calculateArea(lhs, rhs);
+        var box = boxes[i];
+        const area = calculateArea(box.min, box.max);
+        box.min[0] += 1;
+        box.min[1] += 1;
+        box.max[0] -= 1;
+        box.max[1] -= 1;
+        for (lines) |line| if (box.overlaps(line)) continue :top;
+        return area;
     }
     unreachable;
 }
