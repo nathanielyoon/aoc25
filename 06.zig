@@ -121,7 +121,7 @@ test "solve2(example) solves 2" {
 }
 
 pub fn main() !void {
-    const input = @embedFile("./inputs/6.txt");
+    const input = @embedFile("./inputs/06.txt");
     var writer = std.fs.File.stdout().writer(&.{});
     try writer.interface.print("{d}\n{d}\n", .{
         try solve1(input),

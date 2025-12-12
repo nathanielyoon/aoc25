@@ -49,7 +49,7 @@ test "solve(12, example) calculates correct total" {
 }
 
 pub fn main() !void {
-    const input = @embedFile("./inputs/3.txt");
+    const input = @embedFile("./inputs/03.txt");
     var writer = std.fs.File.stdout().writer(&.{});
     try writer.interface.print("{d}\n{d}\n", .{
         solve(2, input),

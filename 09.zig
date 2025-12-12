@@ -11,7 +11,7 @@ const example =
     \\7,3
 ;
 pub fn main() !void {
-    const input = @embedFile("./inputs/9.txt");
+    const input = @embedFile("./inputs/09.txt");
     try lib.print(try solve1(input));
     try lib.print(try solve2(input));
 }

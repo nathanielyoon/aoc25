@@ -309,7 +309,7 @@ test "solve2(example) solves 2" {
 }
 
 pub fn main() !void {
-    const input = @embedFile("./inputs/8.txt");
+    const input = @embedFile("./inputs/08.txt");
     var writer = std.fs.File.stdout().writer(&.{}).interface;
     try writer.print("{d}\n{d}\n", .{
         try solve1(input, 1000),

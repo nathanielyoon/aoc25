@@ -73,7 +73,7 @@ test "part 2" {
 }
 
 pub fn main() !void {
-    const input = @embedFile("./inputs/1.txt");
+    const input = @embedFile("./inputs/01.txt");
     var writer = std.fs.File.stdout().writer(&.{});
     try writer.interface.print("{d}\n{d}\n", .{
         solve1(input),

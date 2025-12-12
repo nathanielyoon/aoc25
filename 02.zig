@@ -109,7 +109,7 @@ test "validate2() handles example" {
 }
 
 pub fn main() !void {
-    const input = @embedFile("./inputs/2.txt");
+    const input = @embedFile("./inputs/02.txt");
     var writer = std.fs.File.stdout().writer(&.{}).interface;
     try writer.print("{d}\n{d}\n", .{
         try solve(validate1, input),
