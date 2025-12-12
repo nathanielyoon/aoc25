@@ -1,5 +1,5 @@
 const std = @import("std");
-const lib = @import("./lib.zig");
+const lib = @import("lib.zig");
 const example =
     \\162,817,812
     \\57,618,57
