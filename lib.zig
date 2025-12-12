@@ -1,6 +1,6 @@
 const std = @import("std");
 
-/// Counts the number of "real" lines.
+/// Counts the number of separated chunks.
 pub fn count(input: []const u8, separator: u8) usize {
     var lines: usize = 0;
     for (input, 0..) |char, i| {
@@ -8,9 +8,11 @@ pub fn count(input: []const u8, separator: u8) usize {
     }
     return lines + 1;
 }
-/// Trims trailing linefeeds and splits into lines.
+/// Trims trailing separators and splits on them.
 pub fn split(input: []const u8, separator: u8) std.mem.SplitIterator(u8, .scalar) {
-    return std.mem.splitScalar(u8, std.mem.trimEnd(u8, input, .{separator}), separator);
+    var end = input.len;
+    while (input[end - 1] == separator) end -= 1;
+    return std.mem.splitScalar(u8, input[0..end], separator);
 }
 /// Prints a number to stdout.
 pub fn print(solution: anytype) !void {
